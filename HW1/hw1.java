@@ -45,7 +45,7 @@ public class hw1 {
                 for (int j = 0; j < target.length(); j++) {
                     if (s.charAt(i + j) != target.charAt(j))
                         break;
-                    if (j == target.length() - 1 && s.charAt(i + j) == target.charAt(j))
+                    if (j == target.length() - 1)
                         count--;
                 }
             }
