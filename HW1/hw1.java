@@ -41,19 +41,16 @@ public class hw1 {
 
     private static boolean findSubstring(String s, String target, int count) {
         for (int i = 0; i < s.length() - target.length(); i++) {
-            if (s.charAt(i) == target.charAt(0)) {
                 for (int j = 0; j < target.length(); j++) {
                     if (s.charAt(i + j) != target.charAt(j))
                         break;
                     if (j == target.length() - 1){
                         count--;
                         i += j;
-                    }
-                        
+                    }           
                 }
-            }
         }
-        return count <= 0 ? true : false;
+        return count <= 0;
     }
 
     private static boolean isContainSubstring(String s) {
