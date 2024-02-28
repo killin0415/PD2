@@ -1,0 +1,8 @@
+This is a bug, but is fixed.
+ABC to ot CBA
+ABCBA
+ABCCBA
+AA
+aA
+Aaa aBbBbbbb
+Abmxabcbbc
