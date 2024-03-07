@@ -18,8 +18,8 @@ public class hw1 {
             while ((line = reader.readLine()) != null) {
                 line = line.toLowerCase(); // turn everything into lower case
                 List<Boolean> ans = Arrays.asList(palindrome(line), findSubstring(line, str1, 1),
-                        findSubstring(line, str2, s2Count), isContainSubstring(line)); // init a bool list with four function outputs
-                System.out.println(ans.stream().map((a) -> a ? "Y" : "N").collect(joining(","))); // map bool list into Y/N then format to string
+                        findSubstring(line, str2, s2Count), isContainSubstring(line));
+                System.out.println(ans.stream().map((a) -> a ? "Y" : "N").collect(joining(",")));
             }
             reader.close();
         } catch (IOException e) {
@@ -40,20 +40,17 @@ public class hw1 {
     }
 
     private static boolean findSubstring(String s, String target, int count) {
-        for (int i = 0; i < s.length() - target.length(); i++) {
+        for (int i = 0; i < s.length() - target.length() + 1; i++) {
             if (s.charAt(i) == target.charAt(0)) {
                 for (int j = 0; j < target.length(); j++) {
                     if (s.charAt(i + j) != target.charAt(j))
                         break;
-                    if (j == target.length() - 1){
+                    if (j == target.length() - 1)
                         count--;
-                        i += j;
-                    }
-                        
                 }
             }
         }
-        return count <= 0 ? true : false;
+        return count <= 0;
     }
 
     private static boolean isContainSubstring(String s) {
