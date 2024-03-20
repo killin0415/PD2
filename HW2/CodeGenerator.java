@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 
-public class Parser {
+public class CodeGenerator {
 
     // private static final String match_attr = "(\\+|-)(\\w+) +(\\w+)";
 
@@ -25,7 +25,7 @@ public class Parser {
         m = getMethodWithColon(TEST, m);
         m = getMemberWithBrackets(TEST, m);
         // printMap(m);
-        CodeGenerator cg  = new CodeGenerator(m);
+        Code2Java cg  = new Code2Java(m);
         for (var i: m.entrySet()) {
             String output = cg.codeGenerate(i.getKey());
             fr.writeFile(output, i.getKey());
@@ -224,11 +224,11 @@ class FileReader {
     }
 }
 
-class CodeGenerator {
+class Code2Java {
     private HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> data;
     private HashMap<String, String> default_value = new HashMap<String, String>();
 
-    public CodeGenerator(HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
+    public Code2Java(HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
         this.data = m;
         default_value.put("int", "0");
         default_value.put("boolean", "false");
