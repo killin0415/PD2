@@ -1,6 +1,12 @@
 package HW2;
 
 import java.util.regex.Pattern;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,33 +15,21 @@ import java.util.regex.Matcher;
 public class Parser {
 
     // private static final String match_attr = "(\\+|-)(\\w+) +(\\w+)";
-    private static final String TEST = "classDiagram\n" + //
-                "    class Person \n" + //
-                "    Person : +introduceSelf(String name) void\n" + //
-                "\n" + //
-                "    class Student {\n" + //
-                "        +String studentID\n" + //
-                "        +study() void\n" + //
-                "    }\n" + //
-                "    \n" + //
-                "    class Teacher {\n" + //
-                "        +String teacherID\n" + //
-                "        +teach() void\n" + //
-                "    }\n" + //
-                "    Person : -int age\n" + //
-                "    Person : -String name\n" + //
-                "\n" + //
-                "    class Student {\n" + //
-                "        int studClass;\n" + //
-                "        Teacher correspondingTeacher;\n" + //
-                "    }";
 
     public static void main(String[] args) {
+
+        FileReader fr = new FileReader(args[0]);
+        String TEST = fr.getCode();
         HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m = getClass(TEST);
         m = getAttrWithColon(TEST, m);
         m = getMethodWithColon(TEST, m);
         m = getMemberWithBrackets(TEST, m);
-        printMap(m);
+        // printMap(m);
+        CodeGenerator cg  = new CodeGenerator(m);
+        for (var i: m.entrySet()) {
+            String output = cg.codeGenerate(i.getKey());
+            fr.writeFile(output, i.getKey());
+        }
     }
 
     static HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> getClass(String s) {
@@ -105,14 +99,14 @@ public class Parser {
     static HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> getMemberWithBrackets(
             String s, HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
 
-        final String BRACKETS = "class +(\\w+) *\\{\\n([^\\{]*)\\n\\}";
+        final String BRACKETS = "class +(\\w+) *\\{([^\\{]*)\\}";
         Matcher matcher2 = matchRegex(BRACKETS, s);
         while (matcher2.find()) {
             final String class_name = matcher2.group(1);
             final String member = matcher2.group(2);
             final String MATCH_MEMBER = "(\\+|-)((\\w+)\\((.*)\\)) +(\\w+)|(\\+|-)(\\w+) +(\\w+)";
             Matcher matcher = matchRegex(MATCH_MEMBER, member);
-            while(matcher.find()){
+            while (matcher.find()) {
                 if (matcher.group(2) != null) { // method
                     String key = matcher.group(1).equals("+") ? "public" : "private";
                     if (m.get(class_name).get(key) == null) {
@@ -193,5 +187,105 @@ public class Parser {
      * |__ `method` -- *
      * |__ `type`: `function String needs to be parse`
      */
+
+}
+
+class FileReader {
+    private String path;
+    private String mermaid_code;
+
+    public FileReader(String path) {
+        this.path = path;
+        try {
+            this.mermaid_code = Files.readString(Paths.get(this.path));
+        } catch (IOException e) {
+            System.err.println("無法讀取文件 " + this.path);
+            e.printStackTrace();
+        }
+    }
+
+    public String getCode() {
+        return this.mermaid_code;
+    }
+
+    public void writeFile(String content, String class_name) {
+        try {
+            String output = String.format("%s.java", class_name);
+            File file = new File(output);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
+                bw.write(content);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+class CodeGenerator {
+    private HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> data;
+    private HashMap<String, String> default_value = new HashMap<String, String>();
+
+    public CodeGenerator(HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
+        this.data = m;
+        default_value.put("int", "0");
+        default_value.put("boolean", "false");
+        default_value.put("String", "\"\"");
+    }
+
+    public String codeGenerate(String class_name) {
+        StringBuilder output = new StringBuilder();
+        HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> i = this.data.get(class_name);
+        output.append(String.format("public class %s {\n", class_name));
+        for (var j : i.entrySet()) { // private or public
+            for (var k : j.getValue().entrySet()) { // attribute or method
+                if (k.getKey() == "attribute") {
+                    for (var l : k.getValue().entrySet()) { // type
+                        l.getValue().forEach((e) -> { // variable
+                            output.append(String.format("    %s %s %s;\n", j.getKey(), l.getKey(), e));
+                        });
+                    }
+                } else {
+                    final String PATTEN = "get(\\w+)|set(\\w+)";
+                    Pattern pattern = Pattern.compile(PATTEN, Pattern.MULTILINE);
+                    for (var l : k.getValue().entrySet()) {
+                        l.getValue().forEach((e) -> {
+                            Matcher matcher = pattern.matcher(e);
+                            if (matcher.find()) {
+                                output.append(String.format("    %s %s %s {\n", j.getKey(), l.getKey(), e));
+                                if (matcher.group(1) != null) { // getter
+                                    output.append(
+                                            String.format("        return %s;\n",
+                                                    matcher.group(1).toLowerCase()));
+                                } else if (matcher.group(2) != null) {
+                                    output.append(
+                                            String.format("        this.%s = %s;\n",
+                                                    matcher.group(2).toLowerCase(),
+                                                    matcher.group(2).toLowerCase()));
+                                }
+                                output.append("    }\n");
+                            } else {
+                                if (l.getKey().equals("void")) {
+                                    output.append(
+                                        String.format("    %s %s %s {;}\n", 
+                                            j.getKey(), l.getKey(), e));
+                                } else {
+                                    output.append(
+                                        String.format("    %s %s %s {return %s;}\n",
+                                            j.getKey(),l.getKey(), 
+                                            e, default_value.get(l.getKey())));
+                                }
+                            }
+                        });
+                    }
+                }
+
+            }
+        }
+        output.append("}\n");
+        return output.toString();
+    }
 
 }
