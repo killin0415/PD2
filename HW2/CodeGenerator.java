@@ -1,5 +1,3 @@
-package HW2;
-
 import java.util.regex.Pattern;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -24,9 +22,9 @@ public class CodeGenerator {
         m = getAttrWithColon(TEST, m);
         m = getMethodWithColon(TEST, m);
         m = getMemberWithBrackets(TEST, m);
-        // printMap(m);
-        Code2Java cg  = new Code2Java(m);
-        for (var i: m.entrySet()) {
+        printMap(m);
+        Code2Java cg = new Code2Java(m);
+        for (var i : m.entrySet()) {
             String output = cg.codeGenerate(i.getKey());
             fr.writeFile(output, i.getKey());
         }
@@ -181,11 +179,11 @@ public class CodeGenerator {
      * define a class call Token to store all the messages from parser
      * the structure be like:
      * |__`class name`
-     * |__ `private or public`
-     * |__ `attribute` -- *
-     * | |__ `type`: `variable name`
-     * |__ `method` -- *
-     * |__ `type`: `function String needs to be parse`
+     *          |__ `private or public`
+     *                  |__ `attribute` -- *
+     *                  |                  |__ `type`: `variable name`
+     *                  |__ `method` -- *
+     *                                  |__ `type`: `function String needs to be parse`
      */
 
 }
@@ -239,49 +237,47 @@ class Code2Java {
         StringBuilder output = new StringBuilder();
         HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> i = this.data.get(class_name);
         output.append(String.format("public class %s {\n", class_name));
-        for (var j : i.entrySet()) { // private or public
-            for (var k : j.getValue().entrySet()) { // attribute or method
-                if (k.getKey() == "attribute") {
-                    for (var l : k.getValue().entrySet()) { // type
-                        l.getValue().forEach((e) -> { // variable
-                            output.append(String.format("    %s %s %s;\n", j.getKey(), l.getKey(), e));
-                        });
-                    }
-                } else {
-                    final String PATTEN = "get(\\w+)|set(\\w+)";
-                    Pattern pattern = Pattern.compile(PATTEN, Pattern.MULTILINE);
-                    for (var l : k.getValue().entrySet()) {
-                        l.getValue().forEach((e) -> {
-                            Matcher matcher = pattern.matcher(e);
-                            if (matcher.find()) {
-                                output.append(String.format("    %s %s %s {\n", j.getKey(), l.getKey(), e));
-                                if (matcher.group(1) != null) { // getter
-                                    output.append(
-                                            String.format("        return %s;\n",
-                                                    matcher.group(1).toLowerCase()));
-                                } else if (matcher.group(2) != null) {
-                                    output.append(
-                                            String.format("        this.%s = %s;\n",
-                                                    matcher.group(2).toLowerCase(),
-                                                    matcher.group(2).toLowerCase()));
-                                }
-                                output.append("    }\n");
-                            } else {
-                                if (l.getKey().equals("void")) {
-                                    output.append(
-                                        String.format("    %s %s %s {;}\n", 
-                                            j.getKey(), l.getKey(), e));
-                                } else {
-                                    output.append(
-                                        String.format("    %s %s %s {return %s;}\n",
-                                            j.getKey(),l.getKey(), 
-                                            e, default_value.get(l.getKey())));
-                                }
+        for (var j : i.entrySet()) {
+            if (j.getValue().get("attribute") != null){
+               for (var l : j.getValue().get("attribute").entrySet()) { // type
+                    l.getValue().forEach((e) -> { // variable
+                        output.append(String.format("    %s %s %s;\n", j.getKey(), l.getKey(), e));
+                    });
+                } 
+            } // private or public
+            if (j.getValue().get("method") != null) {
+                final String PATTEN = "get(\\w+)|set(\\w+)";
+                Pattern pattern = Pattern.compile(PATTEN, Pattern.MULTILINE);
+                for (var l : j.getValue().get("method").entrySet()) {
+                    l.getValue().forEach((e) -> {
+                        Matcher matcher = pattern.matcher(e);
+                        if (matcher.find()) {
+                            output.append(String.format("    %s %s %s {\n", j.getKey(), l.getKey(), e));
+                            if (matcher.group(1) != null) { // getter
+                                output.append(
+                                        String.format("        return %s;\n",
+                                                matcher.group(1).toLowerCase()));
+                            } else if (matcher.group(2) != null) {
+                                output.append(
+                                        String.format("        this.%s = %s;\n",
+                                                matcher.group(2).toLowerCase(),
+                                                matcher.group(2).toLowerCase()));
                             }
-                        });
-                    }
-                }
-
+                            output.append("    }\n");
+                        } else {
+                            if (l.getKey().equals("void")) {
+                                output.append(
+                                        String.format("    %s %s %s {;}\n",
+                                                j.getKey(), l.getKey(), e));
+                            } else {
+                                output.append(
+                                        String.format("    %s %s %s {return %s;}\n",
+                                                j.getKey(), l.getKey(),
+                                                e, default_value.get(l.getKey())));
+                            }
+                        }
+                    });
+                } 
             }
         }
         output.append("}\n");
