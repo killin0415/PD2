@@ -34,12 +34,12 @@ public class CodeGenerator {
                         if (matcher.group(1) != null) { // getter
                             output.append(
                                     String.format("        return %s;\n",
-                                            matcher.group(1).toLowerCase()));
+                                            toLowerCase(matcher.group(1))));
                         } else if (matcher.group(2) != null) { // setter
                             output.append(
                                     String.format("        this.%s = %s;\n",
-                                            matcher.group(2).toLowerCase(),
-                                            matcher.group(2).toLowerCase()));
+                                            toLowerCase(matcher.group(2)),
+                                            toLowerCase(matcher.group(2))));
                         }
                         output.append("    }\n");
                     } else {
@@ -60,10 +60,15 @@ public class CodeGenerator {
                                                             member.type, member.name));
                 }
             }
-            output.append("}");
+            output.append("}\n");
             fr.writeFile(output.toString(), class_name);
             output.setLength(0);
         }
+    }
+    static public String toLowerCase(String s) {
+        char c[] = s.toCharArray();
+        c[0] = Character.toLowerCase(c[0]);
+        return new  String(c);
     }
 }
 
