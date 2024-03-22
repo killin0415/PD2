@@ -122,7 +122,7 @@ class Parser {
             matcher.appendReplacement(sb, output.toString());
             output.setLength(0);
         }
-        // matcher.appendTail(sb);
+        matcher.appendTail(sb);
         return sb.toString();
     }
 
