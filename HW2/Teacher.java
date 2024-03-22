@@ -1,4 +1,4 @@
 public class Teacher {
-    public String teacherID;
-    public void teach() {;}
+    private String teacherID;
+    private void teach() {;}
 }

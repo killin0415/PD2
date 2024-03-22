@@ -1,5 +1,5 @@
 public class Person {
-    private String name;
+    private void introduceSelf(String name) {;}
     private int age;
-    public void introduceSelf(String name) {;}
+    private String name;
 }

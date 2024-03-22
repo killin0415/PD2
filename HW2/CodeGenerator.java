@@ -1,4 +1,3 @@
-import java.util.regex.Pattern;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -7,185 +6,151 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CodeGenerator {
 
-    // private static final String match_attr = "(\\+|-)(\\w+) +(\\w+)";
+    static private final String REGEX = "((\\w+) *: *(\\+|-)(\\w+) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
 
     public static void main(String[] args) {
 
+        StringBuilder output = new StringBuilder();
         FileReader fr = new FileReader(args[0]);
-        String TEST = fr.getCode();
-        HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m = getClass(TEST);
-        m = getAttrWithColon(TEST, m);
-        m = getMethodWithColon(TEST, m);
-        m = getMemberWithBrackets(TEST, m);
-        printMap(m);
-        Code2Java cg = new Code2Java(m);
-        for (var i : m.entrySet()) {
-            String output = cg.codeGenerate(i.getKey());
-            fr.writeFile(output, i.getKey());
-        }
-    }
-
-    static HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> getClass(String s) {
-
-        final String MATCH_CLASS = "class +(\\w+) *";
-        HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m = new HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>>();
-        Matcher matcher = matchRegex(MATCH_CLASS, s);
-        while (matcher.find()) {
-            m.put(matcher.group(1), new HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>());
-        }
-        return m;
-    }
-
-    static HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> getAttrWithColon(
-            String s, HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
-
-        final String MATCH_ATTR_WITH_COLON = "(\\w+) *: *(\\+|-)(\\w+) +(\\w+)";
-        Matcher matcher = matchRegex(MATCH_ATTR_WITH_COLON, s);
-        while (matcher.find()) {
-            String key = matcher.group(2).equals("+") ? "public" : "private";
-            if (m.get(matcher.group(1)).get(key) == null) {
-                HashMap<String, ArrayList<String>> attribute = new HashMap<String, ArrayList<String>>();
-                attribute.put(matcher.group(3), new ArrayList<String>(List.of(matcher.group(4))));
-                HashMap<String, HashMap<String, ArrayList<String>>> attr = new HashMap<String, HashMap<String, ArrayList<String>>>();
-                attr.put("attribute", attribute);
-                m.get(matcher.group(1)).put(key, attr);
-            } else {
-                if (m.get(matcher.group(1)).get(key).get("attribute") == null)
-                    m.get(matcher.group(1)).get(key).put("attribute", new HashMap<String, ArrayList<String>>());
-                HashMap<String, ArrayList<String>> attribute = m.get(matcher.group(1)).get(key).get("attribute");
-                if (attribute.get(matcher.group(3)) == null) {
-                    attribute.put(matcher.group(3), new ArrayList<String>(List.of(matcher.group(4))));
-                } else {
-                    attribute.get(matcher.group(3)).add(matcher.group(4));
-                }
-            }
-        }
-        return m;
-    }
-
-    static HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> getMethodWithColon(
-            String s, HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
-        final String MATCH_METHOD_WITH_COLON = "(\\w+) *: *(\\+|-)((\\w+)\\((.*)\\)) +(\\w+)";
-        Matcher matcher = matchRegex(MATCH_METHOD_WITH_COLON, s);
-        while (matcher.find()) {
-            String key = matcher.group(2).equals("+") ? "public" : "private";
-            if (m.get(matcher.group(1)).get(key) == null) {
-                HashMap<String, ArrayList<String>> method = new HashMap<String, ArrayList<String>>();
-                method.put(matcher.group(6), new ArrayList<String>(List.of(matcher.group(3))));
-                HashMap<String, HashMap<String, ArrayList<String>>> meth = new HashMap<String, HashMap<String, ArrayList<String>>>();
-                meth.put("method", method);
-                m.get(matcher.group(1)).put(key, meth);
-            } else {
-                if (m.get(matcher.group(1)).get(key).get("method") == null)
-                    m.get(matcher.group(1)).get(key).put("method", new HashMap<String, ArrayList<String>>());
-                HashMap<String, ArrayList<String>> method = m.get(matcher.group(1)).get(key).get("method");
-                if (method.get(matcher.group(6)) == null) {
-                    method.put(matcher.group(6), new ArrayList<String>(List.of(matcher.group(3))));
-                } else {
-                    method.get(matcher.group(6)).add(matcher.group(3));
-                }
-            }
-        }
-        return m;
-    }
-
-    static HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> getMemberWithBrackets(
-            String s, HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
-
-        final String BRACKETS = "class +(\\w+) *\\{([^\\{]*)\\}";
-        Matcher matcher2 = matchRegex(BRACKETS, s);
-        while (matcher2.find()) {
-            final String class_name = matcher2.group(1);
-            final String member = matcher2.group(2);
-            final String MATCH_MEMBER = "(\\+|-)((\\w+)\\((.*)\\)) +(\\w+)|(\\+|-)(\\w+) +(\\w+)";
-            Matcher matcher = matchRegex(MATCH_MEMBER, member);
-            while (matcher.find()) {
-                if (matcher.group(2) != null) { // method
-                    String key = matcher.group(1).equals("+") ? "public" : "private";
-                    if (m.get(class_name).get(key) == null) {
-                        HashMap<String, ArrayList<String>> method = new HashMap<String, ArrayList<String>>();
-                        method.put(matcher.group(5), new ArrayList<String>(List.of(matcher.group(2))));
-                        HashMap<String, HashMap<String, ArrayList<String>>> meth = new HashMap<String, HashMap<String, ArrayList<String>>>();
-                        meth.put("method", method);
-                        m.get(class_name).put(key, meth);
+        String input = fr.getCode();
+        input = Parser.preprocessing(input);
+        final String PATTEN = "get(\\w+)|set(\\w+)";
+        HashMap<String, ArrayList<Member>> members_map = Parser.matchRegex(REGEX, input);
+        for (var members : members_map.entrySet()) {
+            String class_name = members.getKey();
+            output.append(String.format("public class %s {\n", class_name));
+            for (Member member : members.getValue()) {
+                if (member.is_method) {
+                    Pattern pattern = Pattern.compile(PATTEN, Pattern.MULTILINE);
+                    Matcher matcher = pattern.matcher(member.name);
+                    if (matcher.find()) {
+                        output.append(String.format("    %s %s %s {\n", member.is_private,
+                                member.type, member.name));
+                        if (matcher.group(1) != null) { // getter
+                            output.append(
+                                    String.format("        return %s;\n",
+                                            matcher.group(1).toLowerCase()));
+                        } else if (matcher.group(2) != null) { // setter
+                            output.append(
+                                    String.format("        this.%s = %s;\n",
+                                            matcher.group(2).toLowerCase(),
+                                            matcher.group(2).toLowerCase()));
+                        }
+                        output.append("    }\n");
                     } else {
-                        if (m.get(class_name).get(key).get("method") == null)
-                            m.get(class_name).get(key).put("method", new HashMap<String, ArrayList<String>>());
-                        HashMap<String, ArrayList<String>> method = m.get(class_name).get(key).get("method");
-                        if (method.get(matcher.group(5)) == null) {
-                            method.put(matcher.group(5), new ArrayList<String>(List.of(matcher.group(2))));
+                        if (member.type.equals("void")) {
+                            output.append(
+                                    String.format("    %s %s %s {;}\n",
+                                            member.is_private,
+                                            member.type, member.name));
                         } else {
-                            method.get(matcher.group(5)).add(matcher.group(2));
+                            output.append(
+                                    String.format("    %s %s %s {return %s;}\n",
+                                            member.is_private, member.type,
+                                            member.name, member.default_value));
                         }
                     }
                 } else {
-                    String key = matcher.group(6).equals("+") ? "public" : "private";
-                    if (m.get(class_name).get(key) == null) {
-                        HashMap<String, ArrayList<String>> attribute = new HashMap<String, ArrayList<String>>();
-                        attribute.put(matcher.group(7), new ArrayList<String>(List.of(matcher.group(8))));
-                        HashMap<String, HashMap<String, ArrayList<String>>> attr = new HashMap<String, HashMap<String, ArrayList<String>>>();
-                        attr.put("attribute", attribute);
-                        m.get(class_name).put(key, attr);
-                    } else {
-                        if (m.get(class_name).get(key).get("attribute") == null)
-                            m.get(class_name).get(key).put("attribute", new HashMap<String, ArrayList<String>>());
-                        HashMap<String, ArrayList<String>> attribute = m.get(class_name).get(key).get("attribute");
-                        if (attribute.get(matcher.group(7)) == null) {
-                            attribute.put(matcher.group(7), new ArrayList<String>(List.of(matcher.group(8))));
-                        } else {
-                            attribute.get(matcher.group(7)).add(matcher.group(8));
-                        }
-                    }
+                    output.append(String.format("    %s %s %s;\n", member.is_private, 
+                                                            member.type, member.name));
                 }
             }
-
+            output.append("}");
+            fr.writeFile(output.toString(), class_name);
+            output.setLength(0);
         }
-        return m;
+    }
+}
+
+class Member {
+    public String type;
+    public String name;
+    public boolean is_method;
+    public String is_private;
+    public String default_value;
+
+    public Member(String is_private, String type, String name) {
+        this.is_private = is_private == "+" ? "public" : "private";
+        this.type = type;
+        this.name = name;
+        this.is_method = false;
     }
 
-    static void printMap(HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
-        for (var i : m.entrySet()) {
-            System.out.println(i.getKey());
-            for (var j : i.getValue().entrySet()) {
-                System.out.println("  " + j.getKey());
-                for (var k : j.getValue().entrySet()) {
-                    System.err.println("    " + k.getKey());
-                    for (var l : k.getValue().entrySet()) {
-                        System.out.println("      " + l.getKey() + ": " + l.getValue());
-                    }
-                }
+    public Member(String is_private, String type, String name, boolean is_method) {
+        this.is_private = is_private == "+" ? "public" : "private";
+        this.type = type;
+        this.name = name;
+        this.is_method = true;
+        switch (type) {
+            case "int":
+                this.default_value = "0";
+                break;
+            case "String":
+                this.default_value = "\"\"";
+                break;
+            case "boolean":
+                this.default_value = "false";
+                break;
+            default:
+                this.default_value = "";
+                break;
+        }
+    }
+}
+
+class Parser {
+
+    static String preprocessing(String s) {
+        final String find_bracket = " *class +(\\w+) +\\{\\n([^\\}]*)\\}";
+        Pattern pattern = Pattern.compile(find_bracket, Pattern.MULTILINE);
+        Matcher matcher = pattern.matcher(s);
+        StringBuilder output = new StringBuilder();
+        StringBuilder sb = new StringBuilder();
+        while (matcher.find()) {
+            String class_name = matcher.group(1);
+            String line = matcher.group(2);
+            pattern = Pattern.compile(" *(.+)\\n");
+            Matcher matcher2 = pattern.matcher(line);
+            while (matcher2.find()) {
+                output.append(String.format("    %s : %s\n", class_name, matcher2.group(1)));
             }
+            matcher.appendReplacement(sb, output.toString());
+            output.setLength(0);
         }
+        // matcher.appendTail(sb);
+        return sb.toString();
     }
 
-    static void printKey(HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
-        for (var i : m.entrySet()) {
-            System.out.println(i.getKey());
-        }
-    }
-
-    static Matcher matchRegex(String format, String target) {
-        Pattern pattern = Pattern.compile(format, Pattern.MULTILINE);
+    static HashMap<String, ArrayList<Member>> matchRegex(String format, String target) {
+        HashMap<String, ArrayList<Member>> members_map = new HashMap<String, ArrayList<Member>>();
+        Pattern pattern = Pattern.compile(format);
         Matcher matcher = pattern.matcher(target);
-        return matcher;
+        Member member;
+        String class_name;
+        while (matcher.find()) {
+            if (matcher.group(6) != null) {
+                member = new Member(matcher.group(8), matcher.group(10),
+                        matcher.group(9), true);
+                class_name = matcher.group(7);
+            } else {
+                member = new Member(matcher.group(3),
+                        matcher.group(4), matcher.group(5));
+                class_name = matcher.group(2);
+            }
+            if (members_map.get(class_name) == null) {
+                ArrayList<Member> members = new ArrayList<Member>();
+                members_map.put(class_name, members);
+            }
+            ArrayList<Member> members = members_map.get(class_name);
+            members.add(member);
+        }
+        return members_map;
     }
-
-    /*
-     * define a class call Token to store all the messages from parser
-     * the structure be like:
-     * |__`class name`
-     *          |__ `private or public`
-     *                  |__ `attribute` -- *
-     *                  |                  |__ `type`: `variable name`
-     *                  |__ `method` -- *
-     *                                  |__ `type`: `function String needs to be parse`
-     */
-
 }
 
 class FileReader {
@@ -220,68 +185,4 @@ class FileReader {
             e.printStackTrace();
         }
     }
-}
-
-class Code2Java {
-    private HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> data;
-    private HashMap<String, String> default_value = new HashMap<String, String>();
-
-    public Code2Java(HashMap<String, HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>>> m) {
-        this.data = m;
-        default_value.put("int", "0");
-        default_value.put("boolean", "false");
-        default_value.put("String", "\"\"");
-    }
-
-    public String codeGenerate(String class_name) {
-        StringBuilder output = new StringBuilder();
-        HashMap<String, HashMap<String, HashMap<String, ArrayList<String>>>> i = this.data.get(class_name);
-        output.append(String.format("public class %s {\n", class_name));
-        for (var j : i.entrySet()) {
-            if (j.getValue().get("attribute") != null){
-               for (var l : j.getValue().get("attribute").entrySet()) { // type
-                    l.getValue().forEach((e) -> { // variable
-                        output.append(String.format("    %s %s %s;\n", j.getKey(), l.getKey(), e));
-                    });
-                } 
-            } // private or public
-            if (j.getValue().get("method") != null) {
-                final String PATTEN = "get(\\w+)|set(\\w+)";
-                Pattern pattern = Pattern.compile(PATTEN, Pattern.MULTILINE);
-                for (var l : j.getValue().get("method").entrySet()) {
-                    l.getValue().forEach((e) -> {
-                        Matcher matcher = pattern.matcher(e);
-                        if (matcher.find()) {
-                            output.append(String.format("    %s %s %s {\n", j.getKey(), l.getKey(), e));
-                            if (matcher.group(1) != null) { // getter
-                                output.append(
-                                        String.format("        return %s;\n",
-                                                matcher.group(1).toLowerCase()));
-                            } else if (matcher.group(2) != null) {
-                                output.append(
-                                        String.format("        this.%s = %s;\n",
-                                                matcher.group(2).toLowerCase(),
-                                                matcher.group(2).toLowerCase()));
-                            }
-                            output.append("    }\n");
-                        } else {
-                            if (l.getKey().equals("void")) {
-                                output.append(
-                                        String.format("    %s %s %s {;}\n",
-                                                j.getKey(), l.getKey(), e));
-                            } else {
-                                output.append(
-                                        String.format("    %s %s %s {return %s;}\n",
-                                                j.getKey(), l.getKey(),
-                                                e, default_value.get(l.getKey())));
-                            }
-                        }
-                    });
-                } 
-            }
-        }
-        output.append("}\n");
-        return output.toString();
-    }
-
 }

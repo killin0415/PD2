@@ -1,6 +1,6 @@
 public class Student {
+    private String studentID;
+    private void study() {;}
+    private int number;
     private Teacher coorespondingTeacher;
-    private int studClass;
-    public String studentID;
-    public void study() {;}
 }
