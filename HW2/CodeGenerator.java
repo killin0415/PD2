@@ -128,10 +128,19 @@ class Parser {
 
     static HashMap<String, ArrayList<Member>> matchRegex(String format, String target) {
         HashMap<String, ArrayList<Member>> members_map = new HashMap<String, ArrayList<Member>>();
-        Pattern pattern = Pattern.compile(format);
+        
+        String class_name;
+        Pattern pattern = Pattern.compile(" *class +(\\w+)");
+        Matcher match_class = pattern.matcher(target);
+        while(match_class.find()) {
+            if (members_map.get(match_class.group(1)) == null) {
+                members_map.put(match_class.group(1), new ArrayList<Member>());
+            }
+        }
+        pattern = Pattern.compile(format);
         Matcher matcher = pattern.matcher(target);
         Member member;
-        String class_name;
+
         while (matcher.find()) {
             if (matcher.group(6) != null) {
                 member = new Member(matcher.group(8), matcher.group(10),
@@ -149,6 +158,7 @@ class Parser {
             ArrayList<Member> members = members_map.get(class_name);
             members.add(member);
         }
+
         return members_map;
     }
 }
