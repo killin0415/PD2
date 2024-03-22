@@ -75,14 +75,14 @@ class Member {
     public String default_value;
 
     public Member(String is_private, String type, String name) {
-        this.is_private = is_private == "+" ? "public" : "private";
+        this.is_private = is_private.equals("+") ? "public" : "private";
         this.type = type;
         this.name = name;
         this.is_method = false;
     }
 
     public Member(String is_private, String type, String name, boolean is_method) {
-        this.is_private = is_private == "+" ? "public" : "private";
+        this.is_private = is_private.equals("+") ? "public" : "private";
         this.type = type;
         this.name = name;
         this.is_method = true;
@@ -157,6 +157,8 @@ class Parser {
             }
             ArrayList<Member> members = members_map.get(class_name);
             members.add(member);
+            System.out.println(member.name);
+            System.out.println(member.is_private);
         }
 
         return members_map;
