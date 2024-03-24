@@ -9,20 +9,14 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.swing.text.Style;
-
 public class CodeGenerator {
-
-    static private final String REGEX = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
-
     public static void main(String[] args) {
 
         StringBuilder output = new StringBuilder();
         FileReader fr = new FileReader(args[0]);
         String input = fr.getCode();
-        input = Parser.preprocessing(input);
-        HashMap<String, ArrayList<Member>> members_map = Parser.matchRegex(REGEX, input);
-        for (var members : members_map.entrySet()) {
+        Parser parser = new Parser(input);
+        for (var members : parser.members_map.entrySet()) {
             String class_name = members.getKey();
             output.append(String.format("public class %s {\n", class_name));
             for (Member member : members.getValue()) {
@@ -33,7 +27,6 @@ public class CodeGenerator {
             output.setLength(0);
         }
     }
-
 }
 
 class Member {
@@ -75,13 +68,14 @@ class Member {
         StringBuilder output = new StringBuilder();
         if (this.is_method) {
             output.append(String.format("    %s %s %s {", this.is_private, this.type, this.name));
+            int last_index = this.name.indexOf("(");
             if (this.name.startsWith("set")) {
                 output.append(String.format("\n        this.%s = %s;\n    }\n",
-                        toLowerCase(this.name.substring(3, this.name.indexOf("("))),
-                        toLowerCase(this.name.substring(3, this.name.indexOf("(")))));
+                        toLowerCase(this.name.substring(3, last_index)),
+                        toLowerCase(this.name.substring(3, last_index))));
             } else if (this.name.startsWith("get")) {
                 output.append(String.format("\n        return %s;\n    }\n",
-                        toLowerCase(this.name.substring(3, this.name.indexOf("(")))));
+                        toLowerCase(this.name.substring(3, last_index))));
             } else {
                 output.append(String.format("%s;}\n", this.default_value));
             }
@@ -92,7 +86,7 @@ class Member {
         return output.toString();
     }
 
-    static public String toLowerCase(String s) {
+    static private String toLowerCase(String s) {
         char c[] = s.toCharArray();
         c[0] = Character.toLowerCase(c[0]);
         return new String(c);
@@ -101,10 +95,23 @@ class Member {
 
 class Parser {
 
-    static String preprocessing(String s) {
-        final String find_bracket = " *class +(\\w+) +\\{\\n([^\\}]*)\\}";
-        Pattern pattern = Pattern.compile(find_bracket, Pattern.MULTILINE);
-        Matcher matcher = pattern.matcher(s);
+    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
+    private final String MATCH_CLASS = " *class +(\\w+)";
+    private final String CLEAR_BRACKET = " *class +(\\w+) +\\{\\n([^\\}]*)\\}";
+
+    private Pattern pattern;
+    private Matcher matcher;
+
+    public HashMap<String, ArrayList<Member>> members_map;
+
+    public Parser(String input) {
+        this.members_map = new HashMap<String, ArrayList<Member>>();
+        matchRegex(preprocessing(input));
+    }
+
+    private String preprocessing(String s) {
+        this.pattern = Pattern.compile(this.CLEAR_BRACKET, Pattern.MULTILINE);
+        this.matcher = pattern.matcher(s);
         StringBuilder output = new StringBuilder();
         StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
@@ -122,20 +129,23 @@ class Parser {
         return sb.toString();
     }
 
-    static HashMap<String, ArrayList<Member>> matchRegex(String format, String target) {
-        HashMap<String, ArrayList<Member>> members_map = new HashMap<String, ArrayList<Member>>();
-
+    private void matchRegex(String target) {
         String class_name;
-        Pattern pattern = Pattern.compile(" *class +(\\w+)");
-        Matcher match_class = pattern.matcher(target);
-        while (match_class.find()) {
-            if (members_map.get(match_class.group(1)) == null) {
-                members_map.put(match_class.group(1), new ArrayList<Member>());
+        this.pattern = Pattern.compile(this.MATCH_CLASS, Pattern.MULTILINE);
+        this.matcher = pattern.matcher(target);
+        while (matcher.find()) {
+            if (this.members_map.get(matcher.group(1)) == null) {
+                this.members_map.put(matcher.group(1), new ArrayList<Member>());
             }
         }
-        pattern = Pattern.compile(format);
-        Matcher matcher = pattern.matcher(target);
+        this.pattern = Pattern.compile(this.MATCH_METHOD_AND_ATTRIBUTE, Pattern.MULTILINE);
+        this.matcher = pattern.matcher(target);
         Member member;
+
+        /*
+         * `Teacher`(2) : `+`(3)`String`(4) `className`(5)
+         * `Student`(7) : `+`(8)`getStudentName()`(9) `String`(10)
+         */
 
         while (matcher.find()) {
             if (matcher.group(6) != null) {
@@ -147,17 +157,13 @@ class Parser {
                         matcher.group(4), matcher.group(5));
                 class_name = matcher.group(2);
             }
-            if (members_map.get(class_name) == null) {
+            if (this.members_map.get(class_name) == null) {
                 ArrayList<Member> members = new ArrayList<Member>();
-                members_map.put(class_name, members);
+                this.members_map.put(class_name, members);
             }
-            ArrayList<Member> members = members_map.get(class_name);
+            ArrayList<Member> members = this.members_map.get(class_name);
             members.add(member);
-            // System.out.println(member.name);
-            // System.out.println(member.is_private);
         }
-
-        return members_map;
     }
 }
 
