@@ -9,6 +9,8 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.swing.text.Style;
+
 public class CodeGenerator {
 
     static private final String REGEX = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
@@ -19,57 +21,19 @@ public class CodeGenerator {
         FileReader fr = new FileReader(args[0]);
         String input = fr.getCode();
         input = Parser.preprocessing(input);
-        final String PATTEN = "get(\\w+)|set(\\w+)";
         HashMap<String, ArrayList<Member>> members_map = Parser.matchRegex(REGEX, input);
         for (var members : members_map.entrySet()) {
             String class_name = members.getKey();
             output.append(String.format("public class %s {\n", class_name));
             for (Member member : members.getValue()) {
-                if (member.is_method) {
-                    Pattern pattern = Pattern.compile(PATTEN, Pattern.MULTILINE);
-                    Matcher matcher = pattern.matcher(member.name);
-                    if (matcher.find()) {
-                        output.append(String.format("    %s %s %s {\n", member.is_private,
-                                member.type, member.name));
-                        if (matcher.group(1) != null) { // getter
-                            output.append(
-                                    String.format("        return %s;\n",
-                                            toLowerCase(matcher.group(1))));
-                        } else if (matcher.group(2) != null) { // setter
-                            output.append(
-                                    String.format("        this.%s = %s;\n",
-                                            toLowerCase(matcher.group(2)),
-                                            toLowerCase(matcher.group(2))));
-                        }
-                        output.append("    }\n");
-                    } else {
-                        if (member.type.equals("void")) {
-                            output.append(
-                                    String.format("    %s %s %s {;}\n",
-                                            member.is_private,
-                                            member.type, member.name));
-                        } else {
-                            output.append(
-                                    String.format("    %s %s %s {return %s;}\n",
-                                            member.is_private, member.type,
-                                            member.name, member.default_value));
-                        }
-                    }
-                } else {
-                    output.append(String.format("    %s %s %s;\n", member.is_private, 
-                                                            member.type, member.name));
-                }
+                output.append(member.format());
             }
             output.append("}\n");
             fr.writeFile(output.toString(), class_name);
             output.setLength(0);
         }
     }
-    static public String toLowerCase(String s) {
-        char c[] = s.toCharArray();
-        c[0] = Character.toLowerCase(c[0]);
-        return new  String(c);
-    }
+
 }
 
 class Member {
@@ -93,18 +57,45 @@ class Member {
         this.is_method = true;
         switch (type) {
             case "int":
-                this.default_value = "0";
+                this.default_value = "return 0";
                 break;
             case "String":
-                this.default_value = "\"\"";
+                this.default_value = "return \"\"";
                 break;
             case "boolean":
-                this.default_value = "false";
+                this.default_value = "return false";
                 break;
             default:
                 this.default_value = "";
                 break;
         }
+    }
+
+    public String format() {
+        StringBuilder output = new StringBuilder();
+        if (this.is_method) {
+            output.append(String.format("    %s %s %s {", this.is_private, this.type, this.name));
+            if (this.name.startsWith("set")) {
+                output.append(String.format("\n        this.%s = %s;\n    }\n",
+                        toLowerCase(this.name.substring(3, this.name.indexOf("("))),
+                        toLowerCase(this.name.substring(3, this.name.indexOf("(")))));
+            } else if (this.name.startsWith("get")) {
+                output.append(String.format("\n        return %s;\n    }\n",
+                        toLowerCase(this.name.substring(3, this.name.indexOf("(")))));
+            } else {
+                output.append(String.format("%s;}\n", this.default_value));
+            }
+        } else {
+            output.append(String.format("    %s %s %s;\n", this.is_private, this.type, this.name));
+        }
+
+        return output.toString();
+    }
+
+    static public String toLowerCase(String s) {
+        char c[] = s.toCharArray();
+        c[0] = Character.toLowerCase(c[0]);
+        return new String(c);
     }
 }
 
@@ -133,11 +124,11 @@ class Parser {
 
     static HashMap<String, ArrayList<Member>> matchRegex(String format, String target) {
         HashMap<String, ArrayList<Member>> members_map = new HashMap<String, ArrayList<Member>>();
-        
+
         String class_name;
         Pattern pattern = Pattern.compile(" *class +(\\w+)");
         Matcher match_class = pattern.matcher(target);
-        while(match_class.find()) {
+        while (match_class.find()) {
             if (members_map.get(match_class.group(1)) == null) {
                 members_map.put(match_class.group(1), new ArrayList<Member>());
             }
@@ -162,8 +153,8 @@ class Parser {
             }
             ArrayList<Member> members = members_map.get(class_name);
             members.add(member);
-           //  System.out.println(member.name);
-           //  System.out.println(member.is_private);
+            // System.out.println(member.name);
+            // System.out.println(member.is_private);
         }
 
         return members_map;
