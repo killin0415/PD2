@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 public class CodeGenerator {
 
-    static private final String REGEX = "((\\w+) *: *(\\+|-)(\\w+) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
+    static private final String REGEX = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
 
     public static void main(String[] args) {
 
@@ -162,8 +162,8 @@ class Parser {
             }
             ArrayList<Member> members = members_map.get(class_name);
             members.add(member);
-            System.out.println(member.name);
-            System.out.println(member.is_private);
+           //  System.out.println(member.name);
+           //  System.out.println(member.is_private);
         }
 
         return members_map;
