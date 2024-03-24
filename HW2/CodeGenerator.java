@@ -12,20 +12,52 @@ import java.util.regex.Pattern;
 public class CodeGenerator {
     public static void main(String[] args) {
 
-        StringBuilder output = new StringBuilder();
         FileReader fr = new FileReader(args[0]);
         String input = fr.getCode();
         Parser parser = new Parser(input);
         for (var members : parser.members_map.entrySet()) {
             String class_name = members.getKey();
-            output.append(String.format("public class %s {\n", class_name));
-            for (Member member : members.getValue()) {
-                output.append(member.format());
-            }
-            output.append("}\n");
+            String output = generate(members.getValue(), class_name);
             fr.writeFile(output.toString(), class_name);
-            output.setLength(0);
         }
+    }
+    
+    private static String generate(ArrayList<Member> members, String class_name){
+        StringBuilder output = new StringBuilder();
+        output.append(String.format("public class %s {\n", class_name));
+        for (Member member : members) {
+            output.append(formatMember(member));
+        }
+        output.append("}\n");
+        return output.toString();
+    }
+
+    private static String formatMember(Member member) {
+        StringBuilder output = new StringBuilder();
+        if (member.is_method) {
+            output.append(String.format("    %s %s %s {", member.is_private, member.type, member.name));
+            int last_index = member.name.indexOf("(");
+            if (member.name.startsWith("set")) {
+                output.append(String.format("\n        this.%s = %s;\n    }\n",
+                        toLowerCase(member.name.substring(3, last_index)),
+                        toLowerCase(member.name.substring(3, last_index))));
+            } else if (member.name.startsWith("get")) {
+                output.append(String.format("\n        return %s;\n    }\n",
+                        toLowerCase(member.name.substring(3, last_index))));
+            } else {
+                output.append(String.format("%s;}\n", member.default_value));
+            }
+        } else {
+            output.append(String.format("    %s %s %s;\n", member.is_private, member.type, member.name));
+        }
+
+        return output.toString();
+    }
+
+    private static String toLowerCase(String s) {
+        char c[] = s.toCharArray();
+        c[0] = Character.toLowerCase(c[0]);
+        return new String(c);
     }
 }
 
@@ -63,34 +95,6 @@ class Member {
                 break;
         }
     }
-
-    public String format() {
-        StringBuilder output = new StringBuilder();
-        if (this.is_method) {
-            output.append(String.format("    %s %s %s {", this.is_private, this.type, this.name));
-            int last_index = this.name.indexOf("(");
-            if (this.name.startsWith("set")) {
-                output.append(String.format("\n        this.%s = %s;\n    }\n",
-                        toLowerCase(this.name.substring(3, last_index)),
-                        toLowerCase(this.name.substring(3, last_index))));
-            } else if (this.name.startsWith("get")) {
-                output.append(String.format("\n        return %s;\n    }\n",
-                        toLowerCase(this.name.substring(3, last_index))));
-            } else {
-                output.append(String.format("%s;}\n", this.default_value));
-            }
-        } else {
-            output.append(String.format("    %s %s %s;\n", this.is_private, this.type, this.name));
-        }
-
-        return output.toString();
-    }
-
-    static private String toLowerCase(String s) {
-        char c[] = s.toCharArray();
-        c[0] = Character.toLowerCase(c[0]);
-        return new String(c);
-    }
 }
 
 class Parser {
@@ -122,7 +126,7 @@ class Parser {
             while (matcher2.find()) {
                 output.append(String.format("    %s : %s\n", class_name, matcher2.group(1)));
             }
-            matcher.appendReplacement(sb, output.toString());
+            matcher.appendReplacement(sb, output.toString()); //replace entire segment of bracket into colon format
             output.setLength(0);
         }
         matcher.appendTail(sb);
