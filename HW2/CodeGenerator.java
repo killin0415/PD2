@@ -153,7 +153,7 @@ class Parser {
 
         while (matcher.find()) {
             if (matcher.group(6) != null) {
-                String type = matcher.group(10) == null ? matcher.group(10): "void";
+                String type = matcher.group(10) != null ? matcher.group(10): "void";
                 member = new Member(matcher.group(8), type,
                         matcher.group(9), true);
                 class_name = matcher.group(7);
