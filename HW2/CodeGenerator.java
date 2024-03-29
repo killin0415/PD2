@@ -99,7 +99,7 @@ class Member {
 
 class Parser {
 
-    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+))";
+    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+)*)";
     private final String MATCH_CLASS = " *class +(\\w+)";
     private final String CLEAR_BRACKET = " *class +(\\w+) +\\{\\n([^\\}]*)\\}";
 
@@ -153,7 +153,8 @@ class Parser {
 
         while (matcher.find()) {
             if (matcher.group(6) != null) {
-                member = new Member(matcher.group(8), matcher.group(10),
+                String type = matcher.group(10) == null ? matcher.group(10): "void";
+                member = new Member(matcher.group(8), type,
                         matcher.group(9), true);
                 class_name = matcher.group(7);
             } else {
