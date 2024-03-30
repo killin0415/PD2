@@ -94,6 +94,10 @@ class Member {
                 this.default_value = "";
                 break;
         }
+        String variable = this.name.substring(this.name.indexOf('(')+1, this.name.indexOf(')'));
+        String e = variable.replaceAll("^ +| +$", "");
+        e = e.replaceAll(" {2,}", " ");
+        this.name = this.name.replace(variable, e);
     }
 }
 
