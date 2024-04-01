@@ -36,14 +36,13 @@ public class CodeGenerator {
         StringBuilder output = new StringBuilder();
         if (member.is_method) {
             output.append(String.format("    %s %s %s {", member.is_private, member.type, member.name));
-            int last_index = member.name.indexOf("(");
             if (member.name.startsWith("set")) {
                 output.append(String.format("\n        this.%s = %s;\n    }\n",
-                        toLowerCase(member.name.substring(3, last_index)),
-                        toLowerCase(member.name.substring(3, last_index))));
+                        toLowerCase(member.name.substring(3, member.name.indexOf("("))),
+                        member.name.substring(member.name.indexOf(" ")+1, member.name.indexOf(")"))));
             } else if (member.name.startsWith("get")) {
                 output.append(String.format("\n        return %s;\n    }\n",
-                        toLowerCase(member.name.substring(3, last_index))));
+                        toLowerCase(member.name.substring(3, member.name.indexOf("(")))));
             } else {
                 output.append(String.format("%s;}\n", member.default_value));
             }
@@ -73,6 +72,7 @@ class Member {
         this.type = type;
         this.name = name;
         this.is_method = false;
+        this.type = this.type.replaceAll(" *(?=\\[)(\\[) *(?=\\])", "$1");
     }
 
     public Member(String is_private, String type, String name, boolean is_method) {
@@ -95,17 +95,19 @@ class Member {
                 break;
         }
         String variable = this.name.substring(this.name.indexOf('(')+1, this.name.indexOf(')'));
-        String e = variable.replaceAll("^ +| +$", "");
-        e = e.replaceAll(" {2,}", " ");
+        String e = variable.replaceAll("^ +| +$| *(, ) *|(\\w+ ) +(\\w+)|( ) +", "$1$2$3$4");
+        e = e.replaceAll(",(?! )", ", ");
+        e = e.replaceAll(" *(?=\\[)(\\[) *(?=\\])", "$1");
         this.name = this.name.replace(variable, e);
+        this.name = this.name.replaceAll(" +(?=\\()", "");
     }
 }
 
 class Parser {
 
-    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-)(\\w+\\[*\\]*) +(\\w+))|((\\w+) *: *(\\+|-)(\\w+\\(.*\\)) +(\\w+)*)";
+    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-) *(\\w+ *\\[* *\\]*) +(\\w+))|((\\w+) *: *(\\+|-) *(\\w+ *\\(.*\\)) *(\\w+\\[*\\]*)*)";
     private final String MATCH_CLASS = " *class +(\\w+)";
-    private final String CLEAR_BRACKET = " *class +(\\w+) +\\{\\n([^\\}]*)\\}";
+    private final String CLEAR_BRACKET = " *class +(\\w+) *\\{([^\\}]*)\\}";
 
     private Pattern pattern;
     private Matcher matcher;
@@ -125,7 +127,7 @@ class Parser {
         while (matcher.find()) {
             String class_name = matcher.group(1);
             String line = matcher.group(2);
-            pattern = Pattern.compile(" *(.+)\\n");
+            pattern = Pattern.compile(" *(.+)\\n*", Pattern.MULTILINE);
             Matcher matcher2 = pattern.matcher(line);
             while (matcher2.find()) {
                 output.append(String.format("    %s : %s\n", class_name, matcher2.group(1)));
