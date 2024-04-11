@@ -51,9 +51,9 @@ public class DataAnalysis {
         // System.out.println(beta.matrix[0][0]);
         
         double[] results = beta.transpose().matrix[0];
-        double temp = results[0];
+        double temp = round(results[0], 2);
         results[0] = round(results[1], 2);
-        results[1] = round(temp, 2);
+        results[1] = temp;
 
         return results;
     }
@@ -63,11 +63,15 @@ public class DataAnalysis {
 
         for (var i : x) {
             sum += i;
-            sum_square += i * i;
         }
+
         avg = sum / x.length;
-        avg_sum_square = sum_square / x.length;
-        ans = sqrt(avg_sum_square - avg * avg);
+
+        for (var i : x) {
+            sum_square += pow(i - avg, 2);    
+        }
+        avg_sum_square = sum_square / (x.length - 1);
+        ans = sqrt(avg_sum_square);
         ans = round(ans, 2);
 
         return ans;
@@ -76,7 +80,7 @@ public class DataAnalysis {
     public static double sma(double[] x, int l, int n) {
         double avg, sum = 0;
         for (int i = 0; i < n; i++) {
-            sum += x[l + n];
+            sum += x[l + i];
         }
         avg = sum / n;
         avg = round(avg, 2);
@@ -91,13 +95,13 @@ public class DataAnalysis {
     }
 
     public static double pow(double x, int n) {
-        int ans = 1;
+        double ans = 1;
         while (n != 0) {
-            if ((n & 1) == 1) {
+            if (n % 2  == 1) {
                 ans *= x;
             }
             x *= x;
-            n >>= 1;
+            n /= 2;
         }
         return ans;
     }
@@ -107,8 +111,11 @@ public class DataAnalysis {
         int temp = (int) (a * n);
         int temp2 = temp / 10;
         double ans = temp2 / n * 10;
-        if (temp % 10 >= 5)
-            ans += 0.01d;
+        double k = 0.01001d;
+        if (temp % 10  >= 5 || temp % 10 <= -5) {
+            if (a < 0) k *= -1;
+            ans += k;
+        }
         return ans;
     }
 

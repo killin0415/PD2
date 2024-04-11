@@ -4,6 +4,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 
@@ -16,19 +17,20 @@ public class HtmlParser {
 
     final private static String url = "https://pd2-hw3.netdb.csie.ncku.edu.tw/";
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
 
         if (args[0].equals("0")) {
             writeFile("data.csv");
         } else if (args[1].equals("0")) {
-            writeFile("output.csv");
+            ArrayList<ArrayList<String>> a = parseCSV("data.csv");
+            writeFile(a, "output.csv");
         } else if (args[1].equals("1")) {
 
             String name = args[2];
             int l = Integer.parseInt(args[3]);
             int r = Integer.parseInt(args[4]);
 
-            ArrayList<ArrayList<String>> csv = new ArrayList<>();
+            ArrayList<ArrayList<String>> csv = parseCSV("output.csv");
             ArrayList<String> sma_list = new ArrayList<String>();
             ArrayList<ArrayList<String>> csv_data;
             try {
@@ -39,9 +41,10 @@ public class HtmlParser {
             }
             double[] x = dataProcessing(csv_data, 1, 30, name);
             for (int i = l - 1; i < r; ++i) {
-                sma_list.add(String.valueOf(DataAnalysis.sma(x, i, 5)));
+                if (i + 5 > r) break;
+                sma_list.add(format(DataAnalysis.sma(x, i, 5)));
             }
-            ArrayList<String> title = new ArrayList<String>(3);
+            ArrayList<String> title = new ArrayList<String>();
 
             title.add(args[2]);
             title.add(args[3]);
@@ -57,7 +60,7 @@ public class HtmlParser {
             int l = Integer.parseInt(args[3]);
             int r = Integer.parseInt(args[4]);
 
-            ArrayList<ArrayList<String>> csv = new ArrayList<>();
+            ArrayList<ArrayList<String>> csv = parseCSV("output.csv");
             ArrayList<String> std_list = new ArrayList<String>();
             ArrayList<ArrayList<String>> csv_data;
             try {
@@ -67,7 +70,7 @@ public class HtmlParser {
                 System.err.println(e);
             }
             double[] x = dataProcessing(csv_data, 1, r - l + 1, name);
-            std_list.add(String.valueOf(DataAnalysis.std(x)));
+            std_list.add(format(DataAnalysis.std(x)));
 
             ArrayList<String> title = new ArrayList<String>(3);
 
@@ -84,7 +87,7 @@ public class HtmlParser {
             int l = Integer.parseInt(args[3]);
             int r = Integer.parseInt(args[4]);
 
-            ArrayList<ArrayList<String>> csv = new ArrayList<>();
+            ArrayList<ArrayList<String>> csv = parseCSV("output.csv");
             ArrayList<ArrayList<String>> csv_data;
             try {
                 csv_data = parseCSV("data.csv");
@@ -94,10 +97,12 @@ public class HtmlParser {
             }
             double[] std_list = new double[csv_data.get(0).size()];
             int i = 0;
+            HashMap<Double, String> m = new HashMap<Double, String>();
 
             for (String name : csv_data.get(0)) {
-                double[] x = dataProcessing(csv_data, l, l - r + 1, name);
+                double[] x = dataProcessing(csv_data, l, r - l + 1, name);
                 std_list[i] = DataAnalysis.std(x);
+                m.put(std_list[i], name);
                 i++;
             }
             List<Double> std_top3 = DataAnalysis.topK(std_list, 3);
@@ -105,13 +110,15 @@ public class HtmlParser {
             ArrayList<String> title = new ArrayList<String>(3);
             ArrayList<String> std_tok3_result = new ArrayList<String>(3);
 
-            title.add(args[2]);
+            title.add(m.get(std_top3.get(0)));
+            title.add(m.get(std_top3.get(1)));
+            title.add(m.get(std_top3.get(2)));
             title.add(args[3]);
             title.add(args[4]);
 
-            std_tok3_result.add(String.valueOf(std_top3.get(0)));
-            std_tok3_result.add(String.valueOf(std_top3.get(1)));
-            std_tok3_result.add(String.valueOf(std_top3.get(2)));
+            std_tok3_result.add(format(std_top3.get(0)));
+            std_tok3_result.add(format(std_top3.get(1)));
+            std_tok3_result.add(format(std_top3.get(2)));
 
             csv.add(title);
             csv.add(std_tok3_result);
@@ -123,7 +130,7 @@ public class HtmlParser {
             int l = Integer.parseInt(args[3]);
             int r = Integer.parseInt(args[4]);
 
-            ArrayList<ArrayList<String>> csv = new ArrayList<>();
+            ArrayList<ArrayList<String>> csv = parseCSV("output.csv");
             ArrayList<String> lr_list = new ArrayList<String>();
             ArrayList<ArrayList<String>> csv_data;
             try {
@@ -137,16 +144,16 @@ public class HtmlParser {
                 x[i] = l + i;
             double[] y = dataProcessing(csv_data, l, r - l + 1, name);
             double[] ans = { 0, 0 };
-            for (int i = l - 1; i < r; ++i) {
-                try {
-                    ans = DataAnalysis.getLinearRegression(x, y);
-                } catch (InterruptedException e) {
-                    System.err.println(e);
-                    ;
-                }
-                lr_list.add(String.valueOf(ans[0]));
-                lr_list.add(String.valueOf(ans[1]));
+
+            try {
+                ans = DataAnalysis.getLinearRegression(x, y);
+            } catch (InterruptedException e) {
+                System.err.println(e);
+                ;
             }
+            lr_list.add(format(ans[0]));
+            lr_list.add(format(ans[1]));
+
             ArrayList<String> title = new ArrayList<String>(3);
 
             title.add(args[2]);
@@ -159,6 +166,14 @@ public class HtmlParser {
             writeFile(csv, "output.csv");
         }
 
+    }
+
+    private static String format(double d) {
+        String s = String.format("%.2f", d);
+        if (s.contains(".")) {
+            s = s.replaceAll("0*$", "").replaceAll("\\.$", "");
+        }
+        return s;
     }
 
     private static double[] dataProcessing(ArrayList<ArrayList<String>> arr, int l, int n, String name) {
@@ -194,6 +209,7 @@ public class HtmlParser {
                 content.append(j != i.size() - 1 ? "," : "\n");
             }
         }
+        content.setLength(content.length() - 1);
         return content.toString();
     }
 
