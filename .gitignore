@@ -1,1 +1,4 @@
-*.class
+.vscode
+test
+.class
+test2

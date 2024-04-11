@@ -25,7 +25,6 @@ public class hw1 {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     private static boolean palindrome(String s) {
@@ -41,16 +40,14 @@ public class hw1 {
 
     private static boolean findSubstring(String s, String target, int count) {
         for (int i = 0; i < s.length() - target.length() + 1; i++) {
-            if (s.charAt(i) == target.charAt(0)) {
-                for (int j = 0; j < target.length(); j++) {
-                    if (s.charAt(i + j) != target.charAt(j))
-                        break;
-                    if (j == target.length() - 1)
-                        count--;
-                }
+            for (int j = 0; j < target.length(); j++) {
+                if (s.charAt(i + j) != target.charAt(j))
+                    break;
+                if (j == target.length() - 1)
+                    count--;
             }
         }
-        return count <= 0;
+        return count <= 0 ? true : false;
     }
 
     private static boolean isContainSubstring(String s) {
@@ -66,3 +63,4 @@ public class hw1 {
         return false;
     }
 }
+
