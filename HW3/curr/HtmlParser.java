@@ -1,7 +1,10 @@
+package curr;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -69,7 +72,7 @@ public class HtmlParser {
                 csv_data = new ArrayList<>();
                 System.err.println(e);
             }
-            double[] x = dataProcessing(csv_data, 1, r - l + 1, name);
+            double[] x = dataProcessing(csv_data, l, r - l + 1, name);
             std_list.add(format(DataAnalysis.std(x)));
 
             ArrayList<String> title = new ArrayList<String>(3);
@@ -144,12 +147,10 @@ public class HtmlParser {
                 x[i] = l + i;
             double[] y = dataProcessing(csv_data, l, r - l + 1, name);
             double[] ans = { 0, 0 };
-
             try {
                 ans = DataAnalysis.getLinearRegression(x, y);
             } catch (InterruptedException e) {
                 System.err.println(e);
-                ;
             }
             lr_list.add(format(ans[0]));
             lr_list.add(format(ans[1]));
@@ -165,7 +166,6 @@ public class HtmlParser {
 
             writeFile(csv, "output.csv");
         }
-
     }
 
     private static String format(double d) {
@@ -213,19 +213,47 @@ public class HtmlParser {
         return content.toString();
     }
 
+    private static void log(int s) {
+
+        try {
+            StringBuilder sb = new StringBuilder();
+            File log = new File("logs.txt");
+            log.createNewFile();
+            sb.append(Files.readString(Paths.get("logs.txt")));
+            sb.append(s + "\n");
+            BufferedWriter bw = new BufferedWriter(new FileWriter(log));
+            bw.write(sb.toString());
+            bw.close();
+        } catch (Exception e) {
+            System.err.println(e);
+        }
+    }
+    
     public static void writeFile(String path) {
 
         ArrayList<ArrayList<String>> csv = new ArrayList<>();
         File file = new File(path);
-
+        
         try {
-            csv = parseCSV(path);
-            Data data = grabData();
 
+            file.createNewFile();
+
+            csv = parseCSV(path);
+
+            log(csv.size());
+
+            Data data = grabData();
             if (csv.size() == 0) {
                 csv.add(data.name);
+                ArrayList<String> temp = new ArrayList<String>();
+                temp.add("1");
+		temp.add("1");
+                for(int i = 1; i < 31; i++) {
+                    csv.add(temp);
+                }
             }
-            csv.add(data.price);
+            csv.set(data.day, data.price);
+            
             String content = formatCSV(csv);
 
             BufferedWriter bw = new BufferedWriter(new FileWriter(file));
@@ -256,10 +284,11 @@ public class HtmlParser {
 
         ArrayList<String> th = new ArrayList<String>();
         ArrayList<String> td = new ArrayList<String>();
-
+        int day = 0;
         try {
 
             Document document = Jsoup.connect(url).get();
+            String title = document.title();
             Elements elements = document.body().select("table > tbody > tr");
 
             for (Element element : elements) {
@@ -273,11 +302,13 @@ public class HtmlParser {
             }
             assert th.size() == td.size() : "data sizes are different";
 
+            day = Integer.parseInt(title.replaceAll("day(\\d+)", "$1"));
+
         } catch (IOException e) {
             System.err.println(e);
         }
 
-        Data ret = new Data(th, td);
+        Data ret = new Data(th, td, day);
 
         return ret;
     }
@@ -286,9 +317,11 @@ public class HtmlParser {
 class Data {
     public ArrayList<String> name;
     public ArrayList<String> price;
+    public int day;
 
-    public Data(ArrayList<String> th, ArrayList<String> td) {
+    public Data(ArrayList<String> th, ArrayList<String> td, int day) {
         this.name = th;
         this.price = td;
+        this.day = day;
     }
 }
