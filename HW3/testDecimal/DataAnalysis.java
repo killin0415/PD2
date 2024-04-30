@@ -1,24 +1,25 @@
+package testDecimal;
 
-import java.util.Arrays;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.stream.Collectors;
 
 
 public class DataAnalysis {
 
     public static void main(String[] args) {
-        double[] X = { 12d, 131d, 11d, 345d, 74d } ;
-        double[] y = { 4d, 5d, 12d, 4d, 65d };
-        double[] m = new double[2];
-        try {
-        m = getLinearRegression(X, y);
-        } catch (InterruptedException e) {
-        System.out.println(e);
-        }
-        System.out.println(m[0]);
+        // double[] X = { 12d, 131d, 11d, 345d, 74d };
+        // double[] y = { 4d, 5d, 12d, 4d, 65d };
+        // double[] m = new double[2];
+        // try {
+        // m = getLinearRegression(X, y);
+        // } catch (InterruptedException e) {
+        // System.out.println(e);
+        // }
+        System.out.println(sqrt(4d));
+        // System.out.println(m[0]);
         // m.get("intercept")));
         // System.out.println(pow(10, 2));
         // System.out.println(round(10.00, 2));
@@ -26,9 +27,10 @@ public class DataAnalysis {
         
         // System.out.println(topK(y, 2));
         // round(10.455, 2);
+        // topK(y, 2);
     }
 
-    public static double[] getLinearRegression(double[] input_x, double[] input_y) throws InterruptedException {
+    public static BigDecimal[] getLinearRegression(double[] input_x, double[] input_y) throws InterruptedException {
 
         int size_x = input_x.length;
         int size_y = input_y.length;
@@ -51,15 +53,13 @@ public class DataAnalysis {
         // System.out.println(beta.matrix[0][0]);
         
         double[] results = beta.transpose().matrix[0];
-        double temp = round(results[0], 2);
-        results[0] = round(results[1], 2);
-        results[1] = temp;
+        BigDecimal[] ret = {round(results[1], 2), round(results[0], 2)};
 
-        return results;
+        return ret;
     }
 
-    public static double std(double[] x) {
-        double ans, avg, avg_sum_square, sum = 0, sum_square = 0;
+    public static BigDecimal std(double[] x) {
+        double avg, avg_sum_square, sum = 0, sum_square = 0;
 
         for (var i : x) {
             sum += i;
@@ -71,27 +71,23 @@ public class DataAnalysis {
             sum_square += pow(i - avg, 2);    
         }
         avg_sum_square = sum_square / (x.length - 1);
-        ans = sqrt(avg_sum_square);
-        ans = round(ans, 2);
-
-        return ans;
+        BigDecimal ret  = round(sqrt(avg_sum_square), 2);
+        return ret;
     }
 
-    public static double sma(double[] x, int l, int n) {
+    public static BigDecimal sma(double[] x, int l, int n) {
         double avg, sum = 0;
         for (int i = 0; i < n; i++) {
             sum += x[l + i];
         }
         avg = sum / n;
-        avg = round(avg, 2);
-        return avg;
+        BigDecimal ret = round(avg, 2);
+        return ret;
     }
 
-    public static List<Double> topK(double[] x, int k) {
-        Set<Double> sortedset = new TreeSet<>(Comparator.reverseOrder());
-        List<Double> temp = Arrays.stream(x).boxed().toList();
-        sortedset.addAll(temp);
-        return sortedset.stream().limit(k).collect(Collectors.toList());
+    public static List<BigDecimal> topK(ArrayList<BigDecimal> x, int k) {
+        x.sort(Comparator.reverseOrder());
+        return x.subList(0, k);
     }
 
     public static double pow(double x, int n) {
@@ -106,17 +102,9 @@ public class DataAnalysis {
         return ans;
     }
 
-    public static double round(double a, int cnt) {
-        double n = pow(10, cnt + 1);
-        int temp = (int) (a * n);
-        int temp2 = temp / 10;
-        double ans = temp2 / n * 10;
-        double k = 0.01001d;
-        if (temp % 10  >= 5 || temp % 10 <= -5) {
-            if (a < 0) k *= -1;
-            ans += k;
-        }
-        return ans;
+    public static BigDecimal round(double a, int cnt) {
+        BigDecimal bd = new BigDecimal(a).setScale(cnt, RoundingMode.HALF_UP).stripTrailingZeros();
+        return bd;
     }
 
     public static double sqrt(double x) {
@@ -126,7 +114,8 @@ public class DataAnalysis {
         x = Double.longBitsToDouble(i);
         x *= 1.5f - x2 * x * x;
         x *= 1.5f - x2 * x * x;
-        x = round(1 / x, 2);
+        x = 1 / x;
+
         return x;
     }
 
