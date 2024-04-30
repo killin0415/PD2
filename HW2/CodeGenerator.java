@@ -105,7 +105,7 @@ class Member {
 
 class Parser {
 
-    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-) *(\\w+ *\\[* *\\]*) +(\\w+))|((\\w+) *: *(\\+|-) *(\\w+ *\\(.*\\)) *(\\w+\\[*\\]*)*)";
+    private final String MATCH_METHOD_AND_ATTRIBUTE = "((\\w+) *: *(\\+|-) *(\\w+\\[* *\\]*) +(\\w+))|((\\w+) *: *(\\+|-) *(\\w+ *\\(.*\\)) *(\\w+\\[*\\]*)*)";
     private final String MATCH_CLASS = " *class +(\\w+)";
     private final String CLEAR_BRACKET = " *class +(\\w+) *\\{([^\\}]*)\\}";
 
